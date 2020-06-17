@@ -1,5 +1,5 @@
 # CausalAnalysis_TermPaper
-This rep contains Stuff for the term paper of the course "Applied Causal Analysis" @University of Mannheim Spring 2020, the term paper is called:
+This repo contains Stuff for the term paper of the course "Applied Causal Analysis" @University of Mannheim Spring 2020, the term paper is called:
 
 ## From Fiction to Reality: As Hate Speech Spread So Does Hate Crime? A Twitter Investigation
 
