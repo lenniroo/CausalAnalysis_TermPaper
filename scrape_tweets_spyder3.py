@@ -25,4 +25,4 @@ tweets = query_tweets("fluechtlinge", begindate = begin_date, enddate = end_date
 
 df = pd.DataFrame(t.__dict__ for t in tweets)
 
-df.to_csv(os.path.join(path,r'Scrape1.csv'), index = False, encoding = 'utf-8')
+df.to_csv(os.path.join(path,r'Scrape2.csv'), index = False, encoding = 'utf-8')
