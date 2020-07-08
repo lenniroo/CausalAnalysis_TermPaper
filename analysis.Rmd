@@ -161,7 +161,53 @@ tweetwords <- tweets %>%
 ```
 
 
+```{r}
+sentiments <- bind_rows(
+  read.table("SentiWS_v2.0_Negative.txt", sep = "\t", fill = T),
+  read.table("SentiWS_v2.0_Positive.txt", sep = "\t", fill = T)) %>%
+  select(.,1:2)
 
+f_pl <- data.frame(word = c("fluechtlinge"), value = -0.0048)
+
+sentis <- sentiments %>%
+  mutate(word = str_replace_all(sentiments$V1,
+                c("Ã¤" = "ae", "Ã¶" = "oe", "Ã¼" = "ue", "ÃŸ" = "ss", 
+                  "Ã„" = "ae", "Ã–" = "Oe", "Ãœ" = "Ue"))) %>%
+  rename("value" = "V2") %>%
+  select(value, word) %>%
+  mutate(word = str_to_lower(word)) %>%
+  mutate(word = gsub("\\|nn", "", word)) %>%
+  bind_rows(f_pl) %>%
+  inner_join(tweetwords, by = "word") %>%
+  mutate(sentiment = ifelse(value >= 0, "positive", "negative")) %>%
+  rename("freq" = "n") %>%
+  arrange(desc(freq))
+
+rm(f_pl)
+
+sentis %>%
+  group_by(sentiment) %>%
+  count()
+```
+
+```{r echo=FALSE, fig.height=5, fig.width=14, warning=FALSE}
+sentis %>%
+  ggplot(aes(word, value, fill = sentiment, label = word)) +
+  geom_col() +
+  geom_text(aes(y = 0), angle = 90, hjust = -.075, vjust = .1, size = 3) +
+  labs(title="Positive/Negative Sentiments of the Tweets", 
+       y = "", x= "Tokens")  +
+  coord_cartesian(ylim = c(-1,1)) +
+  theme_minimal() +
+  theme(axis.title.x = element_text(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_text(),
+        axis.text.y = element_text(),
+        axis.ticks.y = element_blank()) +
+  guides(fill = guide_legend(title = "Sentiment"))
+  
+```
 
 
 
