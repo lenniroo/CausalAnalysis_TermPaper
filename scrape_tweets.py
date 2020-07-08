@@ -20,7 +20,8 @@ end_date = dt.date(2015, 12, 31)
 
 lang = "german"
 
-tweets = query_tweets("flüchtlinge OR flüchtling", begindate = begin_date, enddate = end_date, lang = lang)
+tweets = query_tweets("flüchtlinge OR flüchtling OR asylant OR asylanten OR migrant Or migranten", 
+                      begindate = begin_date, enddate = end_date, lang = lang)
 
 df = pd.DataFrame(t.__dict__ for t in tweets)
 

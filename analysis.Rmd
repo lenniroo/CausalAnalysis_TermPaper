@@ -12,16 +12,172 @@ fontsize: 12pt
 ---
 
 ```{r include=FALSE, warning=FALSE, results="hide", message=FALSE}
+if (!require(RCurl)) install.packages("RCurl", dependencies = T)
 library(RCurl)
+if (!require(curl)) install.packages("curl", dependencies = T)
 library(curl)
+if (!require(tidyverse)) install.packages("tidyverse", dependencies = T)
+library(tidyverse)
+if (!require(tidytext)) install.packages("tidytext", dependencies = T)
+library(tidytext)
+if (!require(stringi)) install.packages("stringi", dependencies = T)
+library(stringi)
+if (!require(quanteda)) install.packages("quanteda", dependencies = T)
+library(quanteda)
+if (!require(tm)) install.packages("tm", dependencies = T)
+library(tm)
+if (!require(data.table)) install.packages("data.table", dependencies = T)
+library(data.table)
+if (!require(tokenizers)) install.packages("tokenizers", dependencies = T)
+library(tokenizers)
+if (!require(magrittr)) install.packages("magrittr", dependencies = T)
+library(magrittr)
 ```
 
 
 
 
 ```{r include=FALSE, results="hide", message=FALSE, warning=FALSE}
-id1 <- "1ppuP_l5Atl96b38M8BbchBOLtM-MccZS"
-s1 <- read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", id1))
+id <- "1aohRhOCu9HRPK1G3mwa57fDPqiIaxsRH"
+tweets <- read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", id))
+#iconvlist()
 ```
+
+```{r}
+tweets$text <- stri_encode(tweets$text, "", "UTF-8")
+
+tweetdata <- data.frame(doc_id = tweets$screen_name, text = tweets$text)
+corpus <- Corpus(DataframeSource(tweetdata))
+
+#function to remov URLs
+removeURL <- content_transformer(function(x) gsub("(f|ht)tp(s?)://\\S+", "", x, perl=T))
+
+
+corpus <- tm_map(corpus, removeURL)
+d <- data.frame(text = sapply(corpus, as.character), stringsAsFactors = F)
+tweets$text <- d$text
+rm(d)
+rm(tweetdata)
+rm(corpus)
+```
+
+```{r}
+tweets <- as_tibble(tweets)
+class(tweets$text)
+
+tweets %>%
+  mutate_if(is.factor, as.character) 
+
+tweets$text <- str_replace_all(tweets$text,
+                c("Ã¤" = "ae", "Ã¶" = "oe", "Ã¼" = "ue", "ÃŸ" = "ss", 
+                  "Ã„" = "ae", "Ã–" = "Oe", "Ãœ" = "Ue", "[\r\n]" = " ", 
+                  "[[:punct:]]" = " " , "[^[:alnum:] ]" = " ", 
+                  "[^a-zA-Z0-9]" = " ", "[\\s[:digit:]]" = " "))
+
+tweets$text <- tolower(tweets$text)
+```
+
+```{r}
+setDT(tweets)
+cols_rectified <- names(tweets)[vapply(tweets, is.character, logical(1))]
+tweets[,c(cols_rectified) := lapply(.SD, trimws), .SDcols = cols_rectified]
+tweets[,c(cols_rectified) := lapply(.SD, function(x)gsub("\\s+", " ", x)), .SDcols = cols_rectified]
+
+empty_char <- tweets %>%
+  filter(!str_detect(text, ""))
+
+tweets <- tweets %>%
+  anti_join(empty_char, by = "text")
+
+rm(empty_char)
+```
+
+
+
+```{r}
+stopwords <- data_frame(word = stopwords("de"))
+stopwords <- stopwords %>%
+  data_frame(str_replace_all(stopwords$word,
+                c("ä" = "ae", "ö" = "oe", "ü" = "ue", "ß" = "ss", 
+                  "Ä" = "Ae", "Ö" = "Oe", "Ü" = "Ue"))) %>%
+  set_colnames(c("word1", "word2")) %>%
+  select("word2") %>%
+  rename("word" = "word2")
+
+c_stop <- data.frame(word = c("via", "mehr", "twitter", "com", "pic", "de", "eu", "d", "kommen", "mal", 
+                                       "sollen", "news", "viele", "ja", "online", "geht", "heute", "schon", "neue", 
+                                       "u", "immer", "muessen", "wer", "gibt", "s", "ab", "rt", "gut", "macht", 
+                                       "statt", "a", "n", "nimmt", "sagt", "seit", "unsere", "fast", "sz", "f", 
+                                       "brauchen", "beim", "nehmen", "neue", "bitte", "gerade", "zurueck", "is", 
+                                       "lassen", "dafuer", "einfach", "wegen", "f", "m", "kommt", "denen", "re",
+                                       "duerfen", "i", "wohl", "waere", "weitere", "b", "gehen", "gar", "erst", "erste",
+                                       "sollten", "wirklich", "h", "sagen", "sieht", "bringen", "eigentlich", 
+                                       "suchen", "gg", "o", "tun", "ganz", "stellt", "e", "laesst", "w", "bald", 
+                                       "br", "faz", "faznet", "at", "geben", "ndr", "no", "t", "z", "all", "for", 
+                                       "g", "davon", "haette", "wurde", "setzt", "the", "genau", "k", "r", "gleich", 
+                                       "kamen", "c", "koennten", "l", "waeren", "ntvde", "vielleicht", "dabei", 
+                                       "darf", "haelt", "offenbar", "wenig", "allein", "kaum", "orfsg", "by", "klar", 
+                                       "wg", "bislang", "na", "neuen", "eignen", "heisst", "leider", "letzte", 
+                                       "paar", "ots", "womoeglich", "add", "etc", "ne", "sogar", "trotz", "schnell", 
+                                       "wdr", "jemand", "tolle", "wieso", "boah", "ganze", "halten", "rp", "darum",
+                                       "hh", "toll", "top", "x", "bereits", "etwa", "schoen", "taz", "domain", "her",
+                                       "j", "mdr", "orban", "p", "sv", "tt", "wollten", "ex", "focusonline", "live",
+                                       "nix", "nzz", "of", "tut", "ca", "ikea", "mrd", "unsere", "alte", "daran", 
+                                       "darueber", "deutlich", "eher", "ha", "je", "laedt", "laesst", "moechte", 
+                                       "stimmt", "ueberall", "usw", "telmi", "zib", "ach", "and", "eben", "en", 
+                                       "natuerlich", "to", "ttip", "alter", "egal", "fb", "fc", "heutejournal", 
+                                       "oft", "sternde", "vs", "aktuelle" ,"au", "bisserl", "gerne", "grosses", 
+                                       "guter", "here", "magazin", "oh", "sant", "st", "till", "srfarena", "deren", 
+                                       "ey", "gab", "ganzen", "haetten", "heuteshow", "per", "wann", "ardde", "deai", 
+                                       "dr", "hast", "kurz", "on", "rponline", "somit", "telekom", "tonline", "unseren", 
+                                       "zusammen", "art", "ghadajreidi", "hna", "mag", "mo", "oevp", "sc", "selber", 
+                                       "whataretheodds", "weder", "wieviele", "worden", "y", "be", "bplus", "gilt", 
+                                       "it", "kam", "seid", "serie", "steve", "ts", "uebringens", "unseren", "wooow", 
+                                       "binnen", "darauf", "daserste", "dwn", "fl", "fpoe", "free", "habt", "los", "mass", 
+                                       "nahm", "newsrepublicde", "oe", "sst", "staendig", "weist", "weit", "wtf", 
+                                       "badlands", "bvbqfk", "deut", "drk", "dt", "eh", "hallo", "halt", "lt", "new", 
+                                       "q", "sowas", "sowie", "spaeter", "web", "aotto", "bitten", "echt", "eigene", 
+                                       "extra", "meint", "obwohl", "orf", "sei", "uro", "wen", "zb", "apa", "ber", "caf", 
+                                       "card", "ch", "co", "gegenueber", "gern", "iv", "kleine", "more", "mt", "naechste", 
+                                       "naemlich", "netzplanet", "se", "stream", "tops", "us", "waer", "we", "you", 
+                                       "abendblatt", "aeh", "amepres", "cloud", "del", "deshalb", "gibts", "info", 
+                                       "inzwischen", "irgendwie", "kennen", "klare", "nd", "palabra", "ohv", "schoene", 
+                                       "server", "seien", "sog", "soviel", "svp", "swiss", "tolles", "zdfheute", "aha", 
+                                       "al", "blzonline", "bot", "dji", "flue", "ger", "guten", "gutes", "jo", "me", 
+                                       "migazin", "neben", "nen", "phoenix", "sn", "vds"))
+
+c_stopwords <- c_stop %>%
+  as_tibble() %>%
+  bind_rows(stopwords)
+
+rm(c_stop)
+rm(stopwords)
+
+tweetwords <- tweets %>%
+  unnest_tokens(word, text) %>%
+  anti_join(c_stopwords, by = "word") %>%
+  count(word,  sort=T) %>%
+  filter(n > 10) #more or less clean dataset with 1503 tokens
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
