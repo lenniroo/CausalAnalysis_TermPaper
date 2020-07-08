@@ -1,0 +1,27 @@
+---
+title: 'From Fiction to Reality\: As Hate Speech Spread So Does Hate Crime? A Twitter
+  Investigation'
+author: "Lennart Roesemeier"
+date: "July 7, 2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+    fig_caption: yes
+fontsize: 12pt
+---
+
+```{r include=FALSE, warning=FALSE, results="hide", message=FALSE}
+library(RCurl)
+library(curl)
+```
+
+
+
+
+```{r include=FALSE, results="hide", message=FALSE, warning=FALSE}
+id1 <- "1ppuP_l5Atl96b38M8BbchBOLtM-MccZS"
+s1 <- read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", id1))
+```
+
+
