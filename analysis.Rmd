@@ -38,9 +38,40 @@ library(magrittr)
 
 
 ```{r include=FALSE, results="hide", message=FALSE, warning=FALSE}
-id <- "1aohRhOCu9HRPK1G3mwa57fDPqiIaxsRH"
-tweets <- read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", id))
-#iconvlist()
+inc <- getURL("https://raw.githubusercontent.com/ax3l/chronik-vorfaelle/data/vorfaelle.csv")
+incidents <- read.csv(text = inc)
+
+first <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_first.csv")
+tweets_first <- read.csv(text = first)
+
+fl <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_f.csv") 
+fl_tweets <- read.csv(text = fl)
+
+asy <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_a.csv")
+asy_tweets <- read.csv(text = asy)
+
+mi <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_m.csv")
+mi_tweets <- read.csv(text = mi)
+
+rm(inc)
+rm(first)
+rm(fl)
+rm(asy)
+rm(mi)
+
+diff_firstsecond_scrape <- tweets_first %>%
+  anti_join(fl_tweets, by = "text")
+
+tweets <- fl_tweets %>%
+  bind_rows(diff_firstsecond_scrape) %>%
+  bind_rows(asy_tweets) %>%
+  bind_rows(mi_tweets)
+
+rm(tweets_first)
+rm(fl_tweets)
+rm(asy_tweets)
+rm(mi_tweets)
+rm(diff_firstsecond_scrape)
 ```
 
 ```{r}
@@ -69,8 +100,10 @@ tweets %>%
   mutate_if(is.factor, as.character) 
 
 tweets$text <- str_replace_all(tweets$text,
-                c("Ã¤" = "ae", "Ã¶" = "oe", "Ã¼" = "ue", "ÃŸ" = "ss", 
-                  "Ã„" = "ae", "Ã–" = "Oe", "Ãœ" = "Ue", "[\r\n]" = " ", 
+                c("ä" = "ae", "ö" = "oe", "ü" = "ue", "ß" = "ss",
+                  "Ä" = "Ae", "Ö" = "Oe", "Ü" = "Ue",
+                  "Ã¤" = "ae", "Ã¶" = "oe", "Ã¼" = "ue", "ÃŸ" = "ss", 
+                  "Ã„" = "Ae", "Ã–" = "Oe", "Ãœ" = "Ue", "[\r\n]" = " ", 
                   "[[:punct:]]" = " " , "[^[:alnum:] ]" = " ", 
                   "[^a-zA-Z0-9]" = " ", "[\\s[:digit:]]" = " "))
 
@@ -167,7 +200,9 @@ sentiments <- bind_rows(
   read.table("SentiWS_v2.0_Positive.txt", sep = "\t", fill = T)) %>%
   select(.,1:2)
 
-f_pl <- data.frame(word = c("fluechtlinge"), value = -0.0048)
+f_pl <- data.frame(word = c("fluechtlinge", "migrant", "migranten", 
+                            "asylant", "asylanten"), 
+                   value = -0.0048)
 
 sentis <- sentiments %>%
   mutate(word = str_replace_all(sentiments$V1,
@@ -192,15 +227,16 @@ sentis %>%
 
 ```{r echo=FALSE, fig.height=5, fig.width=14, warning=FALSE}
 sentis %>%
+  #filter(freq > 20) %>%
   ggplot(aes(word, value, fill = sentiment, label = word)) +
   geom_col() +
-  geom_text(aes(y = 0), angle = 90, hjust = -.075, vjust = .1, size = 3) +
+  #geom_text(aes(y = 0), angle = 90, hjust = -.075, vjust = .1, size = 3) +
   labs(title="Positive/Negative Sentiments of the Tweets", 
        y = "", x= "Tokens")  +
   coord_cartesian(ylim = c(-1,1)) +
   theme_minimal() +
   theme(axis.title.x = element_text(),
-        axis.text.x = element_blank(),
+        axis.text.x = element_text(angle = 90),
         axis.ticks.x = element_blank(),
         axis.title.y = element_text(),
         axis.text.y = element_text(),
