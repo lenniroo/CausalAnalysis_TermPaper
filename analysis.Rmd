@@ -33,6 +33,14 @@ if (!require(tokenizers)) install.packages("tokenizers", dependencies = T)
 library(tokenizers)
 if (!require(magrittr)) install.packages("magrittr", dependencies = T)
 library(magrittr)
+if (!require(anytime)) install.packages("anytime", dependencies = T)
+library(anytime)
+if (!require(rgdal)) install.packages("rgdal", dependencies = T)
+library(rgdal)
+if (!require(sp)) install.packages("sp")
+library(sp)
+if (!require(mapproj)) install.packages("mapproj")
+library(mapproj)
 ```
 
 
@@ -120,10 +128,10 @@ tweets %>%
 
 # transform umlauts and remove all non-alphanumerical characters
 tweets$text <- str_replace_all(tweets$text,
-                c("ä" = "ae", "ö" = "oe", "ü" = "ue", "ß" = "ss",
-                  "Ä" = "Ae", "Ö" = "Oe", "Ü" = "Ue",
-                  "Ã¤" = "ae", "Ã¶" = "oe", "Ã¼" = "ue", "ÃŸ" = "ss", 
-                  "Ã„" = "Ae", "Ã–" = "Oe", "Ãœ" = "Ue", "[\r\n]" = " ", 
+                c("�" = "ae", "�" = "oe", "�" = "ue", "�" = "ss",
+                  "�" = "Ae", "�" = "Oe", "�" = "Ue",
+                  "¤" = "ae", "¶" = "oe", "¼" = "ue", "�Y" = "ss", 
+                  "�"" = "Ae", "�-" = "Oe", "�o" = "Ue", "[\r\n]" = " ", 
                   "[[:punct:]]" = " " , "[^[:alnum:] ]" = " ", 
                   "[^a-zA-Z0-9]" = " ", "[\\s[:digit:]]" = " "))
 
@@ -155,8 +163,8 @@ rm(empty_char)
 stopwords <- data_frame(word = stopwords("de"))
 stopwords <- stopwords %>%
   data_frame(str_replace_all(stopwords$word,
-                c("ä" = "ae", "ö" = "oe", "ü" = "ue", "ß" = "ss", 
-                  "Ä" = "Ae", "Ö" = "Oe", "Ü" = "Ue"))) %>%
+                c("ä" = "ae", "ö" = "oe", "ü" = "ue", "�" = "ss", 
+                  "�" = "Ae", "�" = "Oe", "�" = "Ue"))) %>%
   set_colnames(c("word1", "word2")) %>%
   select("word2") %>%
   rename("word" = "word2")
@@ -240,8 +248,8 @@ f_pl <- data.frame(word = c("fluechtlinge", "migrant", "migranten",
 # and a new dataset is created with expression which occurs in both (sentiment/tweet) datasets
 sentis <- sentiments %>%
   mutate(word = str_replace_all(sentiments$V1,
-                c("Ã¤" = "ae", "Ã¶" = "oe", "Ã¼" = "ue", "ÃŸ" = "ss", 
-                  "Ã„" = "ae", "Ã–" = "Oe", "Ãœ" = "Ue"))) %>%
+                c("�" = "ae", "�" = "oe", "�" = "ue", "�" = "ss", 
+                  "�" = "Ae", "�" = "Oe", "�" = "Ue"))) %>%
   rename("value" = "V2") %>%
   select(value, word) %>%
   mutate(word = str_to_lower(word)) %>%
@@ -265,10 +273,8 @@ sentis %>%
 ```{r echo=FALSE, fig.height=5, fig.width=14, warning=FALSE}
 # show the distribution of positive/negative seniments, proper
 sentis %>%
-  #filter(freq > 20) %>%
   ggplot(aes(word, value, fill = sentiment, label = word)) +
   geom_col() +
-  #geom_text(aes(y = 0), angle = 90, hjust = -.075, vjust = .1, size = 3) +
   labs(title="Positive/Negative Sentiments of the Tweets", 
        y = "", x= "Tokens")  +
   coord_cartesian(ylim = c(-1,1)) +
@@ -285,8 +291,55 @@ sentis %>%
 
 
 
+```{r}
+incidents$features_properties_date <- as.character(incidents$features_properties_date)
+incidents$features_properties_date <- as.Date(incidents$features_properties_date, "%d.%m.%Y")
+
+incidents <- incidents %>%
+  filter(features_properties_date >= "2015-01-01" & features_properties_date < "2016-01-01")
+```
+
+```{r}
+graph <- incidents %>%
+  select(features_properties_city, features_properties_date, features_properties_state) %>%
+  rename("city" = "features_properties_city", "date" = "features_properties_date", "state" = "features_properties_state") %>%
+  group_by(state) %>%
+  count()
+
+ger <- readRDS("DEU_adm1.rds")
+states <- fortify(ger)
+states$state <- factor(as.numeric(states$id))
+levels(states$state) <- ger$NAME_1
+state_inc <- merge(states, graph)
+
+ggplot(state_inc, aes(x = long, y = lat, group = group, fill = n)) +
+    geom_polygon(col = "white") +
+    coord_map() +
+    theme_void() +
+    theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  labs(title = "Incidents against Refugees in the Year 2015", y = "", x = "", fill = "Number of Incidents")
+```
 
 
+```{r}
+rm(ger)
+rm(states)
+rm(state_inc)
+
+
+
+incidents <- incidents %>%
+  select(features_properties_date, features_properties_state, features_properties_title) %>%
+  rename("date" = "features_properties_date", "state" = "features_properties_state", "title" = "features_properties_title")
+
+tweets <- tweets %>%
+  select(tweet_id, timestamp, text)
+```
 
 
 
