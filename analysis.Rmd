@@ -12,6 +12,7 @@ fontsize: 12pt
 ---
 
 ```{r include=FALSE, warning=FALSE, results="hide", message=FALSE}
+#loading required packages, it downloads a package if it isn't downloaded yet
 if (!require(RCurl)) install.packages("RCurl", dependencies = T)
 library(RCurl)
 if (!require(curl)) install.packages("curl", dependencies = T)
@@ -38,35 +39,45 @@ library(magrittr)
 
 
 ```{r include=FALSE, results="hide", message=FALSE, warning=FALSE}
+# loading Data
+# incident data provided by Mueller and Schwarz (2019)
 inc <- getURL("https://raw.githubusercontent.com/ax3l/chronik-vorfaelle/data/vorfaelle.csv")
 incidents <- read.csv(text = inc)
 
+# first scrape of the keyword "Fluechtling(e)" (refugee(s))
 first <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_first.csv")
 tweets_first <- read.csv(text = first)
 
+# second scrape of "Fluechtling(e)" (refugee(s))
 fl <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_f.csv") 
 fl_tweets <- read.csv(text = fl)
 
+# scrape of the keyword "asylant" (asylee(s))
 asy <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_a.csv")
 asy_tweets <- read.csv(text = asy)
 
+# scrape of the keyword "migrant(en)" (migrant(s))
 mi <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_m.csv")
 mi_tweets <- read.csv(text = mi)
 
+# remove the URLs
 rm(inc)
 rm(first)
 rm(fl)
 rm(asy)
 rm(mi)
 
+# compute the difference between the first and the second scrape process
 diff_firstsecond_scrape <- tweets_first %>%
   anti_join(fl_tweets, by = "text")
 
+# binding all tweets together
 tweets <- fl_tweets %>%
   bind_rows(diff_firstsecond_scrape) %>%
   bind_rows(asy_tweets) %>%
   bind_rows(mi_tweets)
 
+# remove redundant dataframes of single scrape waves
 rm(tweets_first)
 rm(fl_tweets)
 rm(asy_tweets)
@@ -75,30 +86,39 @@ rm(diff_firstsecond_scrape)
 ```
 
 ```{r}
+# encode all tweets to utf-8
 tweets$text <- stri_encode(tweets$text, "", "UTF-8")
 
+# transform tweets to a corpus to remove URLs within tweets
 tweetdata <- data.frame(doc_id = tweets$screen_name, text = tweets$text)
 corpus <- Corpus(DataframeSource(tweetdata))
 
 #function to remov URLs
 removeURL <- content_transformer(function(x) gsub("(f|ht)tp(s?)://\\S+", "", x, perl=T))
 
-
+# removing URLs
 corpus <- tm_map(corpus, removeURL)
+
+# transfomr corpus to dataframe and replace the tweets within the tweet data
 d <- data.frame(text = sapply(corpus, as.character), stringsAsFactors = F)
 tweets$text <- d$text
+
+# remove redundant data
 rm(d)
 rm(tweetdata)
 rm(corpus)
 ```
 
 ```{r}
+# transform to tibble to work the tidyverse package
 tweets <- as_tibble(tweets)
 class(tweets$text)
 
+# transform factors to characters, easier to handle
 tweets %>%
   mutate_if(is.factor, as.character) 
 
+# transform umlauts and remove all non-alphanumerical characters
 tweets$text <- str_replace_all(tweets$text,
                 c("ä" = "ae", "ö" = "oe", "ü" = "ue", "ß" = "ss",
                   "Ä" = "Ae", "Ö" = "Oe", "Ü" = "Ue",
@@ -111,6 +131,9 @@ tweets$text <- tolower(tweets$text)
 ```
 
 ```{r}
+# delete non german or englisch tweets during removing unicode specific tweets 
+# (contains \s + hexdecimal numbers)
+# which cannot be transformed to utf-8
 setDT(tweets)
 cols_rectified <- names(tweets)[vapply(tweets, is.character, logical(1))]
 tweets[,c(cols_rectified) := lapply(.SD, trimws), .SDcols = cols_rectified]
@@ -128,6 +151,7 @@ rm(empty_char)
 
 
 ```{r}
+# loading stopwords and transform them equally to the tweet transformation
 stopwords <- data_frame(word = stopwords("de"))
 stopwords <- stopwords %>%
   data_frame(str_replace_all(stopwords$word,
@@ -137,6 +161,8 @@ stopwords <- stopwords %>%
   select("word2") %>%
   rename("word" = "word2")
 
+# due to the fact that the loaded german stopwords doesn't contain web expressions like "wtf", "lol", etc. 
+# these expression are added manually to the stopword list
 c_stop <- data.frame(word = c("via", "mehr", "twitter", "com", "pic", "de", "eu", "d", "kommen", "mal", 
                                        "sollen", "news", "viele", "ja", "online", "geht", "heute", "schon", "neue", 
                                        "u", "immer", "muessen", "wer", "gibt", "s", "ab", "rt", "gut", "macht", 
@@ -183,9 +209,11 @@ c_stopwords <- c_stop %>%
   as_tibble() %>%
   bind_rows(stopwords)
 
+# remove redundant data
 rm(c_stop)
 rm(stopwords)
 
+# create token list 1755 different tokens
 tweetwords <- tweets %>%
   unnest_tokens(word, text) %>%
   anti_join(c_stopwords, by = "word") %>%
@@ -195,15 +223,21 @@ tweetwords <- tweets %>%
 
 
 ```{r}
+# load sentiment tables from the Wortschatu by the University of Leipzig
 sentiments <- bind_rows(
   read.table("SentiWS_v2.0_Negative.txt", sep = "\t", fill = T),
   read.table("SentiWS_v2.0_Positive.txt", sep = "\t", fill = T)) %>%
   select(.,1:2)
 
+# add keywords because they aren't in the sentiment tables, 
+# except "fluechtling" which has the sentiment value of -0.0048
+# due to that I assign this value to the other keywords as well
 f_pl <- data.frame(word = c("fluechtlinge", "migrant", "migranten", 
                             "asylant", "asylanten"), 
                    value = -0.0048)
 
+# sentiments are transformed just as the tweets
+# and a new dataset is created with expression which occurs in both (sentiment/tweet) datasets
 sentis <- sentiments %>%
   mutate(word = str_replace_all(sentiments$V1,
                 c("Ã¤" = "ae", "Ã¶" = "oe", "Ã¼" = "ue", "ÃŸ" = "ss", 
@@ -218,14 +252,18 @@ sentis <- sentiments %>%
   rename("freq" = "n") %>%
   arrange(desc(freq))
 
+# remove redundant data
 rm(f_pl)
+rm(sentiments)
 
+# calculate the overall positve and negative sentiments
 sentis %>%
   group_by(sentiment) %>%
   count()
 ```
 
 ```{r echo=FALSE, fig.height=5, fig.width=14, warning=FALSE}
+# show the distribution of positive/negative seniments, proper
 sentis %>%
   #filter(freq > 20) %>%
   ggplot(aes(word, value, fill = sentiment, label = word)) +
