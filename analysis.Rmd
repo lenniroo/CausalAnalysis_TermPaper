@@ -52,6 +52,10 @@ library(mapproj)
 inc <- getURL("https://raw.githubusercontent.com/ax3l/chronik-vorfaelle/data/vorfaelle.csv")
 incidents <- read.csv(text = inc)
 
+# loading conntrol variables
+c <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/control_variables.csv")
+control <- read.csv(text = c)
+
 # first scrape of the keyword "Fluechtling(e)" (refugee(s))
 first <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_first.csv")
 tweets_first <- read.csv(text = first)
@@ -70,6 +74,7 @@ mi_tweets <- read.csv(text = mi)
 
 # remove the URLs
 rm(inc)
+rm(c)
 rm(first)
 rm(fl)
 rm(asy)
@@ -120,7 +125,6 @@ rm(corpus)
 ```{r}
 # transform to tibble to work the tidyverse package
 tweets <- as_tibble(tweets)
-class(tweets$text)
 
 # transform factors to characters, easier to handle
 tweets %>%
@@ -131,7 +135,7 @@ tweets$text <- str_replace_all(tweets$text,
                 c("ä" = "ae", "ö" = "oe", "ü" = "ue", "ß" = "ss",
                   "Ä" = "Ae", "Ö" = "Oe", "Ü" = "Ue",
                   "Â¤" = "ae", "Â¶" = "oe", "Â¼" = "ue", "ÃY" = "ss", 
-                  "Ã"" = "Ae", "Ã-" = "Oe", "Ão" = "Ue", "[\r\n]" = " ", 
+                  'Ã"' = "Ae", "Ã-" = "Oe", "Ão" = "Ue", "[\r\n]" = " ", 
                   "[[:punct:]]" = " " , "[^[:alnum:] ]" = " ", 
                   "[^a-zA-Z0-9]" = " ", "[\\s[:digit:]]" = " "))
 
@@ -331,23 +335,275 @@ rm(ger)
 rm(states)
 rm(state_inc)
 
-
+control$state <- str_replace_all(control$state,
+                                 c("ue" = "ü"))
 
 incidents <- incidents %>%
   select(features_properties_date, features_properties_state, features_properties_title) %>%
-  rename("date" = "features_properties_date", "state" = "features_properties_state", "title" = "features_properties_title")
+  rename("date" = "features_properties_date", "state" = "features_properties_state", "title" = "features_properties_title") %>%
+  full_join(control, by = "state")
+
+tweets$timestamp <- as.Date(tweets$timestamp, "%Y-%m-%d %H:%M:%S")
 
 tweets <- tweets %>%
-  select(tweet_id, timestamp, text)
+  select(tweet_id, timestamp, text) %>%
+  rename("date" = "timestamp")
+```
+
+
+```{r}
+sum_tweets <- tweets %>%
+  group_by(date) %>%
+  count() %>%
+  rename("tweets" = "n") 
+
+sum_tweets[, 2] <- log(sum_tweets[2])
+
+sum_inc <- incidents %>%
+  group_by(date) %>%
+  count() %>%
+  rename("num_inc" = "n")
+
+sum_inc[, 2] <- log(sum_inc[2])
+
+all_sum <- sum_tweets %>%
+  full_join(sum_inc, by = "date") %>%
+  replace_na(list(tweets = 0, num_inc = 0))
+
+all_sum_wm <- sum_tweets %>%
+  inner_join(sum_inc, by = "date")
+```
+
+
+
+```{r}
+all_sum %>%
+  ggplot(aes(x = date)) +
+  geom_line(aes(y = tweets, colour = "tweets")) +
+  geom_line(aes(y = num_inc, colour = "num_inc")) +
+  labs(title = "Logarithmized: Hate Crime and Tweets with the word 'refugee'", x = "Date", y = "", colour = "Legend") +
+  scale_color_manual(labels = c("Number of Incidents", "Tweets"), values = c("#009E73", "#E69F00")) +
+  theme_minimal()
+```
+
+
+```{r}
+all_sum_wm %>%
+  ggplot(aes(x = date)) +
+  geom_line(aes(y = tweets, colour = "tweets")) +
+  geom_line(aes(y = num_inc, colour = "num_inc")) +
+  labs(title = "Logarithmized: Hate Crime and Tweets with the word 'refugee'", x = "Date", y = "", colour = "Legend") +
+  scale_color_manual(labels = c("Number of Incidents", "Tweets"), values = c("#009E73", "#E69F00")) +
+  theme_minimal()
+```
+
+
+```{r}
+sum_t1 <- tweets %>%
+  group_by(date) %>%
+  count() %>%
+  rename("tweets" = "n")
+
+all <- incidents %>%
+  group_by(date, state) %>%
+  count() %>%
+  rename("num_inc" = "n") %>%
+  full_join(sum_t1, by = "date") %>%
+  full_join(control, by = "state") %>%
+  replace_na(list(tweets = 0))
+```
+
+
+```{r}
+inc_dnk <- all %>%
+  filter(date >= "2015-02-07" & date <= "2015-02-21") %>%
+  na.omit()
+
+inc_dnk$time <- ifelse(inc_dnk$date > "2015-02-14", 1, 0)
+inc_dnk$did <- ifelse(inc_dnk$date > "2015-02-14", 31, 0)
+
+dnk <- lm(num_inc ~ tweets + did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_dnk)
+summary(dnk)
+```
+
+```{r}
+inc_usa1 <- all %>%
+  filter(date >= "2015-06-10" & date <= "2015-06-24") %>%
+  na.omit()
+
+inc_usa1$time <- ifelse(inc_usa1$date > "2015-06-17", 1, 0)
+inc_usa1$did <- ifelse(inc_usa1$date > "2015-06-17", 0, 809)
+
+usa1 <- lm(num_inc ~ tweets + did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_usa1)
+summary(usa1)
+```
+
+```{r}
+inc_usa2 <- all %>%
+  filter(date >= "2015-11-25" & date <= "2015-12-09") %>%
+  na.omit()
+
+inc_usa2$time <- ifelse(inc_usa2$date > "2015-12-02", 1, 0)
+inc_usa2$did <- ifelse(inc_usa2$date > "2015-12-02", inc_usa2$time * inc_usa2$tweets, 0)
+
+
+usa2 <- lm(num_inc ~ tweets + did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_usa2)
+summary(usa2)
+```
+
+```{r}
+inc_fra1 <- all %>%
+  filter(date >= "2015-06-19" & date <= "2015-07-03")
+
+inc_fra1$time <- ifelse(inc_fra1$date > "2015-06-26", 1, 0)
+inc_fra1$did <- ifelse(inc_fra1$date > "2015-06-26", 784, 0)
+
+fra1 <- lm(num_inc ~ tweets + did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_fra1)
+summary(fra1)
+```
+
+```{r}
+inc_deu <- all %>%
+  filter(date >= "2015-09-10" & date <= "2015-09-24")
+
+inc_deu$time <- ifelse(inc_deu$date > "2015-09-17", 1, 0)
+inc_deu$did <- ifelse(inc_deu$date > "2015-09-17", 857, 0)
+
+deu <- lm(num_inc ~ tweets + did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_deu)
+summary(deu)
+```
+
+```{r}
+inc_aus <- all %>%
+  filter(date >= "2015-09-24" & date <= "2015-10-09")
+
+inc_aus$time <- ifelse(inc_aus$date > "2015-10-02", 1, 0)
+inc_aus$did <- ifelse(inc_aus$date > "2015-10-02", 862, 0)
+
+aus <- lm(num_inc ~ tweets + did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_aus)
+summary(aus)
 ```
 
 
 
 
 
+```{r}
+inc_fra2 <- all %>%
+  filter(date >= "2015-11-06" & date <= "2015-11-20")
+
+inc_fra2$time <- ifelse(inc_fra2$date > "2015-11-13", 1, 0)
+inc_fra2$did <- ifelse(inc_fra2$date > "2015-11-13", inc_fra2$time * inc_fra2$tweets, 0)
+
+fra2 <- lm(num_inc ~ tweets + did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_fra2)
+summary(fra2)
+```
+
+```{r}
+inc_dnk_wt <- all %>%
+  filter(date >= "2015-02-07" & date <= "2015-02-21") %>%
+  na.omit()
+
+inc_dnk_wt$time <- ifelse(inc_dnk_wt$date > "2015-02-14", 1, 0)
+inc_dnk_wt$treated <- ifelse(inc_dnk_wt$date > "2015-02-14", 1, 0)
+inc_dnk_wt$did <- ifelse(inc_dnk_wt$date > "2015-02-14", inc_dnk_wt$time*inc_dnk_wt$treated, 0)
+
+dnk_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_dnk_wt)
+summary(dnk_wt)
+```
+
+```{r}
+inc_usa1_wt <- all %>%
+  filter(date >= "2015-06-10" & date <= "2015-06-24")
+
+inc_usa1_wt$time <- ifelse(inc_usa1_wt$date > "2015-06-17", 1, 0)
+inc_usa1_wt$treated <- ifelse(inc_usa1_wt$date > "2015-06-17", 
+                             ifelse(inc_usa1_wt$num_inc < 1, 0, 1), 0)
+inc_usa1_wt$did <- ifelse(inc_usa1_wt$date > "2015-06-17", inc_usa1_wt$time*inc_usa1_wt$num_inc, 0)
+
+usa1_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_usa1_wt)
+summary(usa1_wt)
+```
+
+```{r}
+inc_usa2_wt <- all %>%
+  filter(date >= "2015-11-25" & date <= "2015-12-09")
+
+inc_usa2_wt$time <- ifelse(inc_usa2_wt$date > "2015-12-02", 1, 0)
+inc_usa2_wt$treated <- ifelse(inc_usa2_wt$date > "2015-12-02", 
+                             ifelse(inc_usa2_wt$num_inc < 1, 0, 1), 0)
+inc_usa2_wt$did <- ifelse(inc_usa2_wt$date > "2015-12-02", inc_usa2_wt$time * inc_usa2_wt$num_inc, 0)
 
 
+usa2_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_usa2_wt)
+summary(usa2_wt)
+```
 
+```{r}
+inc_fra1_wt <- all %>%
+  filter(date >= "2015-06-19" & date <= "2015-07-03")
+
+inc_fra1_wt$time <- ifelse(inc_fra1_wt$date > "2015-06-26", 1, 0)
+inc_fra1_wt$treated <- ifelse(inc_fra1_wt$date > "2015-06-26", 
+                             ifelse(inc_fra1_wt$num_inc < 1, 0, 1), 0)
+inc_fra1_wt$did <- ifelse(inc_fra1_wt$date > "2015-06-26", inc_fra1_wt$num_inc*inc_fra1_wt$time, 0)
+
+fra1_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_fra1_wt)
+summary(fra1_wt)
+```
+
+```{r}
+inc_deu_wt <- all %>%
+  filter(date >= "2015-09-10" & date <= "2015-09-24")
+
+inc_deu_wt$time <- ifelse(inc_deu_wt$date > "2015-09-17", 1, 0)
+inc_deu_wt$treated <- ifelse(inc_deu_wt$date > "2015-09-17", 
+                             ifelse(inc_deu_wt$num_inc < 1, 0, 1), 0)
+inc_deu_wt$did <- ifelse(inc_deu_wt$date > "2015-09-17", inc_deu_wt$num_inc*inc_deu_wt$time, 0)
+
+deu_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_deu_wt)
+summary(deu_wt)
+```
+
+```{r}
+inc_aus_wt <- all %>%
+  filter(date >= "2015-09-24" & date <= "2015-10-09")
+
+inc_aus_wt$time <- ifelse(inc_aus_wt$date > "2015-10-02", 1, 0)
+inc_aus_wt$treated <- ifelse(inc_aus_wt$date > "2015-10-02", 
+                             ifelse(inc_aus_wt$num_inc < 1, 0, 1), 0)
+inc_aus_wt$did <- ifelse(inc_aus_wt$date > "2015-10-02", inc_aus_wt$num_inc*inc_aus_wt$time, 0)
+
+aus_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_aus_wt)
+summary(aus_wt)
+```
+
+```{r}
+inc_fra2_wt <- all %>%
+  filter(date >= "2015-11-06" & date <= "2015-11-20")
+
+inc_fra2_wt$time <- ifelse(inc_fra2_wt$date > "2015-11-13", 1, 0)
+inc_fra2_wt$treated <- ifelse(inc_fra2_wt$date > "2015-11-13", 
+                             ifelse(inc_fra2_wt$num_inc < 1, 0, 1), 0)
+inc_fra2_wt$did <- ifelse(inc_fra2_wt$date > "2015-11-13", inc_fra2_wt$time*inc_fra2_wt$time, 0)
+
+fra2_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_fra2_wt)
+summary(fra2_wt)
+```
 
 
 
