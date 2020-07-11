@@ -12,7 +12,7 @@ fontsize: 12pt
 ---
 
 ```{r include=FALSE, warning=FALSE, results="hide", message=FALSE}
-#loading required packages, it downloads a package if it isn't downloaded yet
+#loading required packages, it installs a package if it isn't installed yet
 if (!require(RCurl)) install.packages("RCurl", dependencies = T)
 library(RCurl)
 if (!require(curl)) install.packages("curl", dependencies = T)
@@ -107,7 +107,7 @@ tweetdata <- data.frame(doc_id = tweets$screen_name, text = tweets$text)
 corpus <- Corpus(DataframeSource(tweetdata))
 
 #function to remov URLs
-removeURL <- content_transformer(function(x) gsub("(f|ht)tp(s?)://\\S+", "", x, perl=T))
+removeURL <- content_transformer(function(x) gsub("(f|ht)tp(s?)://", "", x, perl=T)) #lock at the unicode!! must fix S+
 
 # removing URLs
 corpus <- tm_map(corpus, removeURL)
@@ -398,6 +398,7 @@ all_sum_wm %>%
 ```
 
 
+
 ```{r}
 sum_t1 <- tweets %>%
   group_by(date) %>%
@@ -412,6 +413,7 @@ all <- incidents %>%
   full_join(control, by = "state") %>%
   replace_na(list(tweets = 0))
 ```
+
 
 
 ```{r}
