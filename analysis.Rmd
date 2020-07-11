@@ -507,6 +507,21 @@ summary(fra2)
 ```
 
 ```{r}
+inc_fra_wt <- all %>%
+  filter(date >= "2015-01-02" & date <= "2015-01-16")
+
+inc_fra_wt$time <- ifelse(inc_fra_wt$date > "2015-01-09", 1, 0)
+inc_fra_wt$treated <- ifelse(inc_fra_wt$date > "2015-01-09", 
+                             ifelse(inc_fra_wt$num_inc < 1, 0, 1), 0)
+inc_fra_wt$did <- ifelse(inc_fra_wt$date > "2015-01-09", inc_fra_wt$time*inc_fra_wt$time, 0)
+
+fra_wt <- lm(num_inc ~ did + time + treated + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_fra_wt)
+summary(fra_wt)
+```
+
+
+```{r}
 inc_dnk_wt <- all %>%
   filter(date >= "2015-02-07" & date <= "2015-02-21") %>%
   na.omit()
@@ -515,7 +530,7 @@ inc_dnk_wt$time <- ifelse(inc_dnk_wt$date > "2015-02-14", 1, 0)
 inc_dnk_wt$treated <- ifelse(inc_dnk_wt$date > "2015-02-14", 1, 0)
 inc_dnk_wt$did <- ifelse(inc_dnk_wt$date > "2015-02-14", inc_dnk_wt$time*inc_dnk_wt$treated, 0)
 
-dnk_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+dnk_wt <- lm(num_inc ~ did + time + treated + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_dnk_wt)
 summary(dnk_wt)
 ```
@@ -529,7 +544,7 @@ inc_usa1_wt$treated <- ifelse(inc_usa1_wt$date > "2015-06-17",
                              ifelse(inc_usa1_wt$num_inc < 1, 0, 1), 0)
 inc_usa1_wt$did <- ifelse(inc_usa1_wt$date > "2015-06-17", inc_usa1_wt$time*inc_usa1_wt$num_inc, 0)
 
-usa1_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+usa1_wt <- lm(num_inc ~ did + time + treated + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_usa1_wt)
 summary(usa1_wt)
 ```
@@ -544,7 +559,7 @@ inc_usa2_wt$treated <- ifelse(inc_usa2_wt$date > "2015-12-02",
 inc_usa2_wt$did <- ifelse(inc_usa2_wt$date > "2015-12-02", inc_usa2_wt$time * inc_usa2_wt$num_inc, 0)
 
 
-usa2_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+usa2_wt <- lm(num_inc ~ did + time + treated + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_usa2_wt)
 summary(usa2_wt)
 ```
@@ -558,7 +573,7 @@ inc_fra1_wt$treated <- ifelse(inc_fra1_wt$date > "2015-06-26",
                              ifelse(inc_fra1_wt$num_inc < 1, 0, 1), 0)
 inc_fra1_wt$did <- ifelse(inc_fra1_wt$date > "2015-06-26", inc_fra1_wt$num_inc*inc_fra1_wt$time, 0)
 
-fra1_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+fra1_wt <- lm(num_inc ~ did + time + treated + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_fra1_wt)
 summary(fra1_wt)
 ```
@@ -572,7 +587,7 @@ inc_deu_wt$treated <- ifelse(inc_deu_wt$date > "2015-09-17",
                              ifelse(inc_deu_wt$num_inc < 1, 0, 1), 0)
 inc_deu_wt$did <- ifelse(inc_deu_wt$date > "2015-09-17", inc_deu_wt$num_inc*inc_deu_wt$time, 0)
 
-deu_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+deu_wt <- lm(num_inc ~ did + time + treated + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_deu_wt)
 summary(deu_wt)
 ```
@@ -586,7 +601,7 @@ inc_aus_wt$treated <- ifelse(inc_aus_wt$date > "2015-10-02",
                              ifelse(inc_aus_wt$num_inc < 1, 0, 1), 0)
 inc_aus_wt$did <- ifelse(inc_aus_wt$date > "2015-10-02", inc_aus_wt$num_inc*inc_aus_wt$time, 0)
 
-aus_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+aus_wt <- lm(num_inc ~ did + time + treated + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_aus_wt)
 summary(aus_wt)
 ```
@@ -600,9 +615,13 @@ inc_fra2_wt$treated <- ifelse(inc_fra2_wt$date > "2015-11-13",
                              ifelse(inc_fra2_wt$num_inc < 1, 0, 1), 0)
 inc_fra2_wt$did <- ifelse(inc_fra2_wt$date > "2015-11-13", inc_fra2_wt$time*inc_fra2_wt$time, 0)
 
-fra2_wt <- lm(num_inc ~ did + population_density + foreigners.density + protection_seeking + 
+fra2_wt <- lm(num_inc ~ did + time + treated + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_fra2_wt)
 summary(fra2_wt)
+```
+
+```{r}
+summary(lm(tweets ~ num_inc, data = all))
 ```
 
 
