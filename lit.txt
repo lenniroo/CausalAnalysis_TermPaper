@@ -1,5 +1,5 @@
 R. Remus, U. Quasthoff & G. Heyer: SentiWS - a Publicly Available German-language Resource for Sentiment Analysis.
-In: Proceedings of the 7th International Language Resources and Evaluation (LREC'10), pp. 1168-1171, 2010
+	In: Proceedings of the 7th International Language Resources and Evaluation (LREC'10), pp. 1168-1171, 2010
 
 https://de.wikipedia.org/wiki/Liste_der_deutschen_Bundesl%C3%A4nder_nach_Bev%C3%B6lkerung , retrieved: 10.07.2020
 
@@ -44,6 +44,31 @@ https://www.deutschlandinzahlen.de/tab/bundeslaender/finanzen/einkommen-verdiens
 https://www.bmvi.de/SharedDocs/DE/Anlage/DG/Digitales/breitband-verfuegbarkeit-ende-2015.pdf?__blob=publicationFile , retrieved: 10.07.2020
 
 https://de.wikipedia.org/wiki/Liste_von_Terroranschl%C3%A4gen_im_Jahr_2015 , retrieved: 10.07.2020
+
+Haidt, J. (2012). The righteous mind: Why good people are divided by politics and religion. Vintage.
+
+Jost, J. T., J. Glaser, A. W. Kruglanski, und F. J. Sulloway (2003). Exceptions that prove the rule–using a theory of 
+	motivated social cognition to account for ideological incongruities and political anomalies: Reply to greenberg and jonas (2003).
+
+Rokeach, M. (1960). The open and closed mind. Basic books New York.
+
+Smithers, A., und D. Lobley (1978). Dogmatism, social attitudes and personality. British journal of social and clinical psychology 17(2), 135–142.
+
+Tetlock, P. E. (1983). Cognitive style and political ideology. Journal of Personality and Social Psychology 45(1), 118.
+
+Tetlock, P. E. (1984). Cognitive style and political belief systems in the british house of commons. Journal of Personality and Social psychology 46(2), 365.
+
+Tetlock, P. E., J. Bernzweig, und J. L. Gallant (1985). Supreme court decision making: Cognitive style as a predictor of ideological consistency of voting. 
+	Journal of Personality and Social Psychology 48(5), 1227.
+
+Festinger, L. (1957). A theory of cognitive dissonance, Volume 2. Stanford university press.
+
+Jamieson, K. H., und J. N. Cappella (2008). Echo chamber: Rush Limbaugh and the conservative media establishment. Oxford University Press.
+
+Froitzheim, U. J. (2017). Echokammern sind nicht harmlos. In Medienwandel kompakt 2014–2016. Springer.
+
+Kersting, N., und M. Mehl (2018). Echokammern im deutschen bundestagswahlkampf 2017. die ambivalente rolle der prominenz. 
+	ZParl Zeitschrift für Parlamentsfragen 49(3), 586–602.
 
 
 
