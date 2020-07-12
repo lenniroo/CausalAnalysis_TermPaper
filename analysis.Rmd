@@ -47,6 +47,7 @@ library(mapproj)
 
 
 ```{r include=FALSE, results="hide", message=FALSE, warning=FALSE}
+# !!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!   loading may take some time (w/ my computer: ~10min)
 # loading Data
 # incident data provided by Mueller and Schwarz (2019)
 inc <- getURL("https://raw.githubusercontent.com/ax3l/chronik-vorfaelle/data/vorfaelle.csv")
@@ -56,46 +57,78 @@ incidents <- read.csv(text = inc)
 c <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/control_variables.csv")
 control <- read.csv(text = c)
 
-# first scrape of the keyword "Fluechtling(e)" (refugee(s))
-first <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_first.csv")
-tweets_first <- read.csv(text = first)
+# scrape wave 1 = attack on paris, france in january (7th)
+w1 <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_hs1_jan_n.csv")
+w1_tweets <- read.csv(text = w1)
 
-# second scrape of "Fluechtling(e)" (refugee(s))
-fl <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_f.csv") 
-fl_tweets <- read.csv(text = fl)
+# loading scraped tweets, wave 2 = attack on copenhagen, denmark in february (14th)
+w2 <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_hs2_feb_n.csv")
+w2_tweets <- read.csv(text = w2)
 
-# scrape of the keyword "asylant" (asylee(s))
-asy <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_a.csv")
-asy_tweets <- read.csv(text = asy)
+#loading scraped tweets, wave 3 = attack on charleston, USA in june (17th)
+w3 <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_hs3_jun_n.csv")
+w3_tweets <- read.csv(text = w3)
 
-# scrape of the keyword "migrant(en)" (migrant(s))
-mi <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_m.csv")
-mi_tweets <- read.csv(text = mi)
+# loading scraped tweets, wave 4 = attack on Saint Quentin-Fallavier, France in June (26th)
+w4 <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_hs4_jun_n.csv")
+w4_tweets <- read.csv(text = w4)
+
+# loading scraped tweets, wave 5 = attack on Bielefeld, Germany in september (9th)
+w5 <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_hs5_sep_n.csv")
+w5_tweets <- read.csv(text = w5)
+
+# loading scraped tweets, wave 6 = attack on Berlin, Germany in September (17th)
+w6 <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_hs6_sep_n.csv")
+w6_tweets <- read.csv(text = w6)
+
+# loading scraped tweets, wave 7 = attack on Parramatta City, Australia in october (2nd)
+w7 <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_hs7_oct_n.csv")
+w7_tweets <- read.csv(text = w7)
+
+# loading scraped tweets, wave 8 = attack on Paris, France in november (13th)
+w8 <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_hs8_nov_n.csv")
+w8_tweets <- read.csv(text = w8)
+
+# loading scraped tweets, wave 9 = attack on San Bernardino, USA in december (2nd)
+w9 <- getURL("https://raw.githubusercontent.com/lenniroo/CausalAnalysis_TermPaper/master/Scrape_hs9_dec_n.csv")
+w9_tweets <- read.csv(text = w9)
 
 # remove the URLs
 rm(inc)
 rm(c)
-rm(first)
-rm(fl)
-rm(asy)
-rm(mi)
+rm(w1)
+rm(w2)
+rm(w3)
+rm(w4)
+rm(w5)
+rm(w6)
+rm(w7)
+rm(w8)
+rm(w9)
 
-# compute the difference between the first and the second scrape process
-diff_firstsecond_scrape <- tweets_first %>%
-  anti_join(fl_tweets, by = "text")
 
 # binding all tweets together
-tweets <- fl_tweets %>%
-  bind_rows(diff_firstsecond_scrape) %>%
-  bind_rows(asy_tweets) %>%
-  bind_rows(mi_tweets)
+tweets <- w1_tweets %>%
+  bind_rows(w2_tweets) %>%
+  bind_rows(w3_tweets) %>%
+  bind_rows(w4_tweets) %>%
+  bind_rows(w5_tweets) %>%
+  bind_rows(w6_tweets) %>%
+  bind_rows(w7_tweets) %>%
+  bind_rows(w8_tweets) %>%
+  bind_rows(w9_tweets) %>% # 126089
+  distinct()               # 117836, double tweets: 8253
 
 # remove redundant dataframes of single scrape waves
-rm(tweets_first)
-rm(fl_tweets)
-rm(asy_tweets)
-rm(mi_tweets)
-rm(diff_firstsecond_scrape)
+rm(w1_tweets)
+rm(w2_tweets)
+rm(w3_tweets)
+rm(w4_tweets)
+rm(w5_tweets)
+rm(w6_tweets)
+rm(w7_tweets)
+rm(w8_tweets)
+rm(w9_tweets)
 ```
 
 ```{r}
