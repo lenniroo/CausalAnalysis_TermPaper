@@ -13,7 +13,7 @@ import os
 
 path = 'C:\\Users\\Lennart\\Documents\\GitHub\\CausalAnalysis_TermPaper\\'
 
-lang = "german"
+lang = "de"
 
 
 tweets_hs3 = query_tweets("neger OR islamisierung OR multikulti OR nafris OR asyltouristen OR merkel-gaeste OR illegale OR wohlstandsfluechtlinge OR zudringlinge OR musel OR salafistenschwestern OR kampfmuslimas OR burka-frauen OR kloneger OR buntland OR dummstaat OR plemplemland OR schandland OR bundeskloake",
@@ -22,4 +22,4 @@ tweets_hs3 = query_tweets("neger OR islamisierung OR multikulti OR nafris OR asy
 
 df_hs3 = pd.DataFrame(t.__dict__ for t in tweets_hs3)
 
-df_hs3.to_csv(os.path.join(path,r'Scrape_hs3_jun_n.csv'), index = False, encoding = 'utf-8')
+df_hs3.to_csv(os.path.join(path,r'Scrape_hs3_jun_de.csv'), index = False, encoding = 'utf-8')

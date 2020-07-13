@@ -13,7 +13,7 @@ import os
 
 path = 'C:\\Users\\Lennart\\Documents\\GitHub\\CausalAnalysis_TermPaper\\'
 
-lang = "german"
+lang = "de"
 
 
 # =============================================================================
@@ -43,5 +43,5 @@ df_hs1 = pd.DataFrame(t.__dict__ for t in tweets_hs1)
 # df_asy.to_csv(os.path.join(path,r'Scrape_a_jan.csv'), index = False, encoding = 'utf-8')
 # df_mi.to_csv(os.path.join(path,r'Scrape_m_jan.csv'), index = False, encoding = 'utf-8')
 # =============================================================================
-df_hs1.to_csv(os.path.join(path,r'Scrape_hs1_jan_n.csv'), index = False, encoding = 'utf-8')
+df_hs1.to_csv(os.path.join(path,r'Scrape_hs1_jan_de.csv'), index = False, encoding = 'utf-8')
 
