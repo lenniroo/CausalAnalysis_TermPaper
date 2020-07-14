@@ -101,6 +101,10 @@ tweets <- w1_tweets %>%
 
 # remove redundant dataframes of single scrape waves
 rm(w1_tweets, w2_tweets, w3_tweets, w4_tweets, w5_tweets, w6_tweets, w7_tweets, w8_tweets, w9_tweets)
+
+incidents %>%
+  group_by(features_properties_title) %>%
+  count()
 ```
 
 
@@ -166,6 +170,19 @@ tweets <- tweets %>%
   anti_join(empty_char, by = "text")
 
 rm(empty_char)
+
+# calculate individual accounts
+tweets %>%
+  select(screen_name) %>%
+  group_by(screen_name) %>%
+  count() %>%
+  mutate(sum = n-n+1) %>%
+  ungroup() %>%
+  count(sum) #8117
+  
+  
+  
+  
 ```
 
 
@@ -266,6 +283,8 @@ key <- data.frame(word = c("islamisierung", "multikulti", "asyltouristen",
 key_slur <- data.frame(word = c("nafris", "musel", "salafistenschwestern", "kampfmuslimas",
                                 "burka-frauen", "kloneger"),
                        value = -0.99)
+
+
 # sentiments are transformed just as the tweets
 # and a new dataset is created with expression which occurs in both (sentiment/tweet) datasets
 sentis <- sentiments %>%
@@ -403,45 +422,74 @@ tweets <- tweets %>%
 sum_tweets <- tweets %>%
   group_by(date) %>%
   count() %>%
-  rename("tweets" = "n") 
+  rename("tweets" = "n")
 
 sum_inc <- incidents %>%
   group_by(date) %>%
   count() %>%
   rename("num_inc" = "n")
 
-all_sum_wm <- sum_tweets %>%
-  inner_join(sum_inc, by = "date")
-
+graph <- sum_tweets %>%
+  inner_join(sum_inc, by = "date") %>%
+  replace_na(list(tweets = 0, num_inc = 0)) %>%
+  mutate(wave = if_else(date >= "2015-01-01" & date <= "2015-01-14", 1, 
+                        if_else(date >= "2015-02-07" & date <= "2015-02-22", 2, 
+                                if_else(date >= "2015-06-10" & date <= "2015-06-24", 3, 
+                                        if_else(date >= "2015-06-19" & date <= "2015-07-04", 4,
+                                                if_else(date >= "2015-09-02" & date <= "2015-09-16", 5,
+                                                        if_else(date >= "2015-09-10" & date <= "2015-09-25", 6,
+                                                                if_else(date >= "2015-09-25" & date <= "2015-10-10", 7, 
+                                                                        if_else(date >= "2015-11-06" & date <= "2015-11-21", 8, 9)))))))))
 
 sum_tweets[, 2] <- log(sum_tweets[2])
 sum_inc[, 2] <- log(sum_inc[2])
 
-all_sum <- sum_tweets %>%
-  full_join(sum_inc, by = "date") %>%
-  replace_na(list(tweets = 0, num_inc = 0))
+graph_log <- sum_tweets %>%
+  group_by(date) %>%
+  inner_join(sum_inc, by = "date") %>%
+  replace_na(list(tweets = 0, num_inc = 0)) %>%
+  mutate(wave = if_else(date >= "2015-01-01" & date <= "2015-01-14", 1, 
+                        if_else(date >= "2015-02-07" & date <= "2015-02-22", 2, 
+                                if_else(date >= "2015-06-10" & date <= "2015-06-24", 3, 
+                                        if_else(date >= "2015-06-19" & date <= "2015-07-04", 4,
+                                                if_else(date >= "2015-09-02" & date <= "2015-09-16", 5,
+                                                        if_else(date >= "2015-09-10" & date <= "2015-09-25", 6,
+                                                                if_else(date >= "2015-09-25" & date <= "2015-10-10", 7, 
+                                                                        if_else(date >= "2015-11-06" & date <= "2015-11-21", 8, 9)))))))))
+
+wave_names <- c("1" = "Week Jan",
+                "2" = "Week Feb",
+                "3" = "Week Jun",
+                "4" = "Week Jun #2",
+                "5" = "Week Sep",
+                "6" = "Week Sep #2",
+                "7" = "Week Oct",
+                "8" = "Week Nov",
+                "9" = "Week Dec")
 ```
 
 
-```{r}
-all_sum %>%
+```{r fig.height = 5, fig.width = 11}
+graph_log %>%
   ggplot(aes(x = date)) +
   geom_line(aes(y = tweets, colour = "tweets")) +
   geom_line(aes(y = num_inc, colour = "num_inc")) +
-  labs(title = "Logarithmized: Hate Crime and Tweets with the word 'refugee'", x = "Date", y = "", colour = "Legend") +
+  labs(title = "Logarithmized: Hate Crime and Tweets with the word 'refugee'", x = "Date", y = "Count", colour = "Legend") +
   scale_color_manual(labels = c("Number of Incidents", "Tweets"), values = c("#009E73", "#E69F00")) +
-  theme_minimal()
+  theme_minimal() +
+  facet_wrap(~ wave, scales = "free_x", labeller = as_labeller((wave_names)))
 ```
 
 
-```{r}
-all_sum_wm %>%
+```{r fig.height = 5, fig.width = 11}
+graph %>%
   ggplot(aes(x = date)) +
   geom_line(aes(y = tweets, colour = "tweets")) +
   geom_line(aes(y = num_inc, colour = "num_inc")) +
-  labs(title = "Logarithmized: Hate Crime and Tweets with the word 'refugee'", x = "Date", y = "", colour = "Legend") +
+  labs(title = "Hate Crime and Tweets with the word 'refugee'", x = "Date", y = "", colour = "Legend") +
   scale_color_manual(labels = c("Number of Incidents", "Tweets"), values = c("#009E73", "#E69F00")) +
-  theme_minimal()
+  theme_minimal() +
+  facet_wrap(~ wave, scales = "free_x", labeller = as_labeller(wave_names))
 ```
 
 
@@ -459,7 +507,7 @@ all <- incidents %>%
   full_join(control, by = "state") %>%
   replace_na(list(tweets = 0, num_inc = 0))
 
-rm(all_sum, all_sum_wm, c_stopwords, graph, sum_inc, sum_tweets, tweetwords, sentis, sum_t1, control)
+#rm(c_stopwords, graph, graph_log, sum_inc, sum_tweets, tweetwords, sentis, sum_t1, control, wave_names)
 ```
 
 
@@ -564,6 +612,11 @@ fra2 <- lm((after - before) ~ treat + num_inc + population_density + foreigners.
 summary(fra2)
 ```
 
+```{r}
+all %>%
+  group_by(num_inc) %>%
+  count()
+```
 
 
 
