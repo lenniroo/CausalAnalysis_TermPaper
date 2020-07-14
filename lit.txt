@@ -1,4 +1,4 @@
-R. Remus, U. Quasthoff & G. Heyer: SentiWS - a Publicly Available German-language Resource for Sentiment Analysis.
+R. Remus, U. Quasthoff & G. Heyer. (2010). SentiWS - a Publicly Available German-language Resource for Sentiment Analysis.
 	In: Proceedings of the 7th International Language Resources and Evaluation (LREC'10), pp. 1168-1171, 2010
 
 https://de.wikipedia.org/wiki/Liste_der_deutschen_Bundesl%C3%A4nder_nach_Bev%C3%B6lkerung , retrieved: 10.07.2020
@@ -85,3 +85,8 @@ Lebherz, C. (2007). Sozialpsychologie: Eine Einführung. Springer-Verlag.
 Johnson, R. N. (1996). Bad news revisited: The portrayal of violence, conflict, and suffering on television news. Peace and Conflict 2 (3), 201–216.
 
 Soroka, S. N. (2006). Good news and bad news: Asymmetric responses to economic information. The journal of Politics 68 (2), 372–385.
+
+Bundeskriminalamt (2020). Polizeiliche Kriminalstatistik. Retrieved May 12, 2020, from https://www.bka.de/DE/AktuelleInformationen/StatistikenLagebilder/PolizeilicheKriminalstatistik/pks_node.html
+
+Müller, K., & Schwarz, C. (2019). Fanning the flames of hate: Social media and hate crime. Available at SSRN 3082972.
+
