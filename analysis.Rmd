@@ -41,6 +41,8 @@ if (!require(sp)) install.packages("sp")
 library(sp)
 if (!require(mapproj)) install.packages("mapproj")
 library(mapproj)
+if (!require (stargazer)) install.packages("stargazer")
+library(stargazer)
 ```
 
 
@@ -516,7 +518,7 @@ all <- incidents %>%
 inc_fra <- all %>%
   filter(date >= "2015-01-01" & date <= "2015-01-14") %>%
   mutate(before = if_else(date >= "2015-01-01" & date < "2015-01-07", tweets*1, 0)) %>%
-  mutate(after = if_else(date >= "2015-01-01" & date < "2015-01-14", tweets*1, 0)) %>%
+  mutate(after = if_else(date >= "2015-01-07" & date < "2015-01-14", tweets*1, 0)) %>%
   mutate(treat = if_else(date >= "2015-01-01" & date < "2015-01-07", 0, 1))
 
 fra <- lm((after - before) ~ treat + num_inc + population_density + foreigners.density + protection_seeking + 
@@ -578,15 +580,30 @@ summary(fra1)
 
 ```{r}
 inc_deu <- all %>%
-  filter(date >= "2015-09-10" & date <= "2015-09-24") %>%
-  mutate(before = if_else(date >= "2015-09-10" & date < "2015-09-17", tweets*1, 0)) %>%
-  mutate(after = if_else(date >= "2015-09-10" & date <= "2015-09-24", tweets*1, 0)) %>%
-  mutate(treat = if_else(date >= "2015-09-10" & date < "2015-09-17", 0, 1))
+  filter(date >= "2015-09-02" & date <= "2015-09-16") %>%
+  mutate(before = if_else(date >= "2015-09-02" & date < "2015-09-09", tweets*1, 0)) %>%
+  mutate(after = if_else(date >= "2015-09-02" & date <= "2015-09-16", tweets*1, 0)) %>%
+  mutate(treat = if_else(date >= "2015-09-02" & date < "2015-09-09", 0, 1))
 
 deu <- lm((after - before) ~ treat + num_inc + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_deu)
 summary(deu)
 ```
+
+
+
+```{r}
+inc_deu1 <- all %>%
+  filter(date >= "2015-09-10" & date <= "2015-09-24") %>%
+  mutate(before = if_else(date >= "2015-09-10" & date < "2015-09-17", tweets*1, 0)) %>%
+  mutate(after = if_else(date >= "2015-09-10" & date <= "2015-09-24", tweets*1, 0)) %>%
+  mutate(treat = if_else(date >= "2015-09-10" & date < "2015-09-17", 0, 1))
+
+deu1 <- lm((after - before) ~ treat + num_inc + population_density + foreigners.density + protection_seeking + 
+          racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_deu1)
+summary(deu1)
+```
+
 
 ```{r}
 inc_aus <- all %>%
@@ -613,12 +630,31 @@ summary(fra2)
 ```
 
 ```{r}
-all %>%
-  group_by(num_inc) %>%
-  count()
+stargazer(fra, fra1, fra2, title = "Regression Results France",
+          dep.var.labels = c("Tweets"),
+          covariate.labels = c("Treatment", "Number of Incidents", "Population Density", "Foreigner Density", "People who are seeking for protection",
+                               "Racism Level in Percentage", "Houshold Income (Net)", "Digital Infrastructure"),
+          omit.stat = c("LL", "ser", "f"), ci = F, single.row = T)
 ```
 
 
+```{r}
+stargazer(dnk, deu, deu1, title = "Regression Results Europe #2",
+          dep.var.labels = c("Tweets"),
+          covariate.labels = c("Treatment", "Number of Incidents", "Population Density", "Foreigner Density", "People who are seeking for protection",
+                               "Racism Level in Percentage", "Houshold Income (Net)", "Digital Infrastructure"),
+          omit.stat = c("LL", "ser", "f"), ci = F, single.row = T)
+```
+
+
+
+```{r}
+stargazer(usa1, usa2, aus, title = "Regression Results USA and Australia",
+          dep.var.labels = c("Tweets"),
+          covariate.labels = c("Treatment", "Number of Incidents", "Population Density", "Foreigner Density", "People who are seeking for protection",
+                               "Racism Level in Percentage", "Houshold Income (Net)", "Digital Infrastructure"),
+          omit.stat = c("LL", "ser", "f"), ci = F, single.row = T)
+```
 
 
 
