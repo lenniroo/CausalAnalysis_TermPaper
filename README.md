@@ -3,7 +3,7 @@ This repo contains Stuff for the term paper of the course "Applied Causal Analys
 
 
 ## From Fiction to Reality: As Hate Speech Spread So Does Hate Crime? A Twitter Investigation
-# Proposal
+### Just a proposal
 
 ## Research Question
 Since my adolescents I am interested on the impact of online social media on the real life society. So it is no surprise that I wrote my bachelor's thesis about echo chambers in political twitter networks in Germany. I also see mostly the same opinion on policy choices every day on my Instagram feed, until a few days ago a sparsely known acquaintance share a conspiracy theory video. At this time I realized that my Instagram feed is also a filter bubble or rather an echo chamber. So my origin idea was to investigate Twitter in respect of conspiracy theories during the corona virus, but this emphasize as very difficult. Additionally, I search for datasets  I could use for a causal analysis but the topics I got by this were, in my opinion, not very groundbreaking. So my decision went to the impact of online hate speech on real life crime. It turned out that this topic was examined rarely.  Based on this my research question should be: "Is there a causal effect of Twitter hate speech on real life hate crime during the refugee crises in Germany?"
