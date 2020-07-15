@@ -33,21 +33,23 @@ if (!require(tokenizers)) install.packages("tokenizers", dependencies = T)
 library(tokenizers)
 if (!require(magrittr)) install.packages("magrittr", dependencies = T)
 library(magrittr)
-if (!require(anytime)) install.packages("anytime", dependencies = T)
-library(anytime)
 if (!require(rgdal)) install.packages("rgdal", dependencies = T)
 library(rgdal)
 if (!require(sp)) install.packages("sp")
 library(sp)
 if (!require(mapproj)) install.packages("mapproj")
 library(mapproj)
-if (!require (stargazer)) install.packages("stargazer")
+if (!require(stargazer)) install.packages("stargazer")
 library(stargazer)
+if (! require(pastecs)) install.packages("pastecs")
+library(pastecs)
+if (! require(xtable)) install.packages("xtable")
+library(xtable)
 ```
 
 
 ```{r include=FALSE, results="hide", message=FALSE, warning=FALSE}
-# !!!!!!!!!!!!!!!!!!!Attention!!!!!!!!!!!!!!!!!!!   loading may take some time (w/ my computer: ~10min)
+# !!!!!!!!!!!!!!!!!!!Attention!!!!!!!!!!!!!!!!!!!   loading may take some time (~10min, depends obviously on broadband access and available kernel)
 # loading Data
 # incident data provided by Mueller and Schwarz (2019)
 inc <- getURL("https://raw.githubusercontent.com/ax3l/chronik-vorfaelle/data/vorfaelle.csv")
@@ -181,10 +183,6 @@ tweets %>%
   mutate(sum = n-n+1) %>%
   ungroup() %>%
   count(sum) #8117
-  
-  
-  
-  
 ```
 
 
@@ -315,6 +313,12 @@ rm(f_pl, key, key_slur, sentiments)
 
 ```{r echo=FALSE, fig.height=5, fig.width=14, warning=FALSE}
 # show the distribution of positive/negative seniments, proper
+
+# replicaton note: to see this and the following plots within this file: comment out the jpeg and dev.off command
+# otherwise the plots will be saved in your current woring directory
+
+jpeg(file = "sentis.jpeg", width = 1000)
+
 sentis %>%
   ggplot(aes(word, value, fill = sentiment, label = word)) +
   geom_col() +
@@ -329,19 +333,23 @@ sentis %>%
         axis.text.y = element_text(),
         axis.ticks.y = element_blank()) +
   guides(fill = guide_legend(title = "Sentiment"))
-  
+
+dev.off() 
 ```
 
 
 ```{r}
+# reformat the date column to the class "date"
 incidents$features_properties_date <- as.character(incidents$features_properties_date)
 incidents$features_properties_date <- as.Date(incidents$features_properties_date, "%d.%m.%Y")
 
+# cutting down the incidents dataset to the observations of interest (year 2015) 
 incidents <- incidents %>%
   filter(features_properties_date >= "2015-01-01" & features_properties_date < "2016-01-01")
 ```
 
 ```{r}
+# showing the distribution of the incidents against refugees within the year 2015 and the individual states
 graph <- incidents %>%
   select(features_properties_city, features_properties_date, features_properties_state) %>%
   rename("city" = "features_properties_city", "date" = "features_properties_date", "state" = "features_properties_state") %>%
@@ -354,6 +362,9 @@ states$state <- factor(as.numeric(states$id))
 levels(states$state) <- ger$NAME_1
 state_inc <- merge(states, graph)
 
+
+jpeg(file = "refugee_dist.jpeg")
+
 ggplot(state_inc, aes(x = long, y = lat, group = group, fill = n)) +
     geom_polygon(col = "white") +
     coord_map() +
@@ -365,20 +376,25 @@ ggplot(state_inc, aes(x = long, y = lat, group = group, fill = n)) +
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) +
   labs(title = "Incidents against Refugees in the Year 2015", y = "", x = "", fill = "Number of Incidents")
+
+dev.off()
 ```
 
 
 ```{r}
+# removing redundant data to unload the CPU
 rm(ger, states, state_inc)
 
+# encode the umlaute of the states to merge in the incident dataset
 control$state <- str_replace_all(control$state,
                                  c("ue" = "ü"))
-
+ 
 incidents <- incidents %>%
   select(features_properties_date, features_properties_state, features_properties_title) %>%
   rename("date" = "features_properties_date", "state" = "features_properties_state", "title" = "features_properties_title") %>%
   full_join(control, by = "state")
 
+# cutting down the incidents dataset to the weeks of interest
 inc_1 <- incidents %>%
   filter(date >= "2015-01-01" & date <= "2015-01-14")
 
@@ -410,8 +426,10 @@ incidents <- inc_1 %>%
   bind_rows(inc_2, inc_3, inc_4, inc_4, inc_5, inc_6, inc_7, inc_8, inc_9) %>%
   distinct()
 
+# removing redundant data
 rm(inc_1, inc_2, inc_3, inc_4, inc_5, inc_6, inc_7, inc_8, inc_9)
 
+# reformat the date in the Twitter dataset to the class "date"
 tweets$timestamp <- as.Date(tweets$timestamp, "%Y-%m-%d %H:%M:%S")
 
 tweets <- tweets %>%
@@ -421,16 +439,19 @@ tweets <- tweets %>%
 
 
 ```{r}
+# sum up the tweets per day
 sum_tweets <- tweets %>%
   group_by(date) %>%
   count() %>%
   rename("tweets" = "n")
 
+# sum up the incidents per day
 sum_inc <- incidents %>%
   group_by(date) %>%
   count() %>%
   rename("num_inc" = "n")
 
+# merge Tweets and incidents, adding wave indicators per treatment weeks, without missings
 graph <- sum_tweets %>%
   inner_join(sum_inc, by = "date") %>%
   replace_na(list(tweets = 0, num_inc = 0)) %>%
@@ -443,9 +464,11 @@ graph <- sum_tweets %>%
                                                                 if_else(date >= "2015-09-25" & date <= "2015-10-10", 7, 
                                                                         if_else(date >= "2015-11-06" & date <= "2015-11-21", 8, 9)))))))))
 
+# compute the natural logarithm to have a better visualization
 sum_tweets[, 2] <- log(sum_tweets[2])
 sum_inc[, 2] <- log(sum_inc[2])
 
+# create the logarithmized dataset without missings, adding also wave indicators
 graph_log <- sum_tweets %>%
   group_by(date) %>%
   inner_join(sum_inc, by = "date") %>%
@@ -459,6 +482,7 @@ graph_log <- sum_tweets %>%
                                                                 if_else(date >= "2015-09-25" & date <= "2015-10-10", 7, 
                                                                         if_else(date >= "2015-11-06" & date <= "2015-11-21", 8, 9)))))))))
 
+# create name list for wave indicators, so the visualization is more meaningful
 wave_names <- c("1" = "Week Jan",
                 "2" = "Week Feb",
                 "3" = "Week Jun",
@@ -472,6 +496,9 @@ wave_names <- c("1" = "Week Jan",
 
 
 ```{r fig.height = 5, fig.width = 11}
+# display the logarithmized graph
+jpeg(file = "log_crime_tweets.jpeg")
+
 graph_log %>%
   ggplot(aes(x = date)) +
   geom_line(aes(y = tweets, colour = "tweets")) +
@@ -480,10 +507,15 @@ graph_log %>%
   scale_color_manual(labels = c("Number of Incidents", "Tweets"), values = c("#009E73", "#E69F00")) +
   theme_minimal() +
   facet_wrap(~ wave, scales = "free_x", labeller = as_labeller((wave_names)))
+
+dev.off()
 ```
 
 
 ```{r fig.height = 5, fig.width = 11}
+# display the original distribution
+jpeg(file = "crime_tweets.jpeg")
+
 graph %>%
   ggplot(aes(x = date)) +
   geom_line(aes(y = tweets, colour = "tweets")) +
@@ -492,15 +524,19 @@ graph %>%
   scale_color_manual(labels = c("Number of Incidents", "Tweets"), values = c("#009E73", "#E69F00")) +
   theme_minimal() +
   facet_wrap(~ wave, scales = "free_x", labeller = as_labeller(wave_names))
+
+dev.off()
 ```
 
 
 ```{r}
+# create another summed up Twitter dataset by date
 sum_t1 <- tweets %>%
   group_by(date) %>%
   count() %>%
   rename("tweets" = "n")
 
+# merge all data together with missings
 all <- incidents %>%
   group_by(date, state) %>%
   count() %>%
@@ -509,10 +545,46 @@ all <- incidents %>%
   full_join(control, by = "state") %>%
   replace_na(list(tweets = 0, num_inc = 0))
 
-#rm(c_stopwords, graph, graph_log, sum_inc, sum_tweets, tweetwords, sentis, sum_t1, control, wave_names)
+# compute statistics of summary
+all1 <- incidents %>%
+  group_by(date, state) %>%
+  count() %>%
+  rename("num_inc" = "n") %>%
+  full_join(sum_t1, by = "date") %>%
+  full_join(control, by = "state")
+
+stats <- all1 %>%
+  ungroup() %>%
+  select(tweets, num_inc, hh_income_net, digital_infrastructure_16_perc)
+
+stats1 <- all1 %>%
+  ungroup() %>%
+  select(population_density, foreigners.density, protection_seeking, racism_level_perc)
+
+stats <- stat.desc(stats[, 1:4])
+stats1 <- stat.desc(stats1[, 1:4])
+
+# create Latex code for the summary statistics
+print(xtable(stats, type = "latex"), file = "summarystats.txt")
+print(xtable(stats1, type = "latex"), file = "summarystats1.txt")
+
+
+all <- incidents %>%
+  group_by(date, state) %>%
+  count() %>%
+  rename("num_inc" = "n") %>%
+  inner_join(sum_t1, by = "date") %>%
+  inner_join(control, by = "state") %>%
+  replace_na(list(tweets = 0, num_inc = 0))
+
+# remove redundant data
+rm(c_stopwords, graph, graph_log, sum_inc, sum_tweets, tweetwords, sentis, sum_t1, control, wave_names, stats, stats1)
+
+
 ```
 
 
+In the next few chunks the individual regressions around the nine treatmenst are calculated.
 
 ```{r}
 inc_fra <- all %>%
@@ -523,22 +595,22 @@ inc_fra <- all %>%
 
 fra <- lm((after - before) ~ treat + num_inc + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_fra)
-summary(fra)
+#summary(fra)
 ```
-
 
 
 ```{r}
 inc_dnk <- all %>%
   filter(date >= "2015-02-07" & date <= "2015-02-21") %>%
-  mutate(before = if_else(date >= "2015-02-07" & date < "2015-02-14", tweets*1, 0)) %>%
-  mutate(after = if_else(date >= "2015-02-14" & date < "2015-02-21", tweets*1, 0)) %>%
+  mutate(before = if_else(date >= "2015-02-07" & date < "2015-02-14", mean(tweets), 0)) %>%
+  mutate(after = if_else(date >= "2015-02-14" & date < "2015-02-21", mean(tweets), 0)) %>%
   mutate(treat = if_else(date >= "2015-02-07" & date < "2015-02-14", 0, 1))
 
 dnk <- lm((after - before) ~ treat + num_inc + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_dnk)
-summary(dnk)
+#summary(dnk)
 ```
+
 
 ```{r}
 inc_usa1 <- all %>%
@@ -549,8 +621,9 @@ inc_usa1 <- all %>%
 
 usa1 <- lm((after - before) ~ treat + num_inc + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_usa1)
-summary(usa1)
+#summary(usa1)
 ```
+
 
 ```{r}
 inc_usa2 <- all %>%
@@ -562,8 +635,9 @@ inc_usa2 <- all %>%
 
 usa2 <- lm((after - before) ~ treat + num_inc + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_usa2)
-summary(usa2)
+#summary(usa2)
 ```
+
 
 ```{r}
 inc_fra1 <- all %>%
@@ -575,7 +649,7 @@ inc_fra1 <- all %>%
 
 fra1 <- lm((after - before) ~ treat + num_inc + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_fra1)
-summary(fra1)
+#summary(fra1)
 ```
 
 ```{r}
@@ -587,9 +661,8 @@ inc_deu <- all %>%
 
 deu <- lm((after - before) ~ treat + num_inc + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_deu)
-summary(deu)
+#summary(deu)
 ```
-
 
 
 ```{r}
@@ -601,7 +674,7 @@ inc_deu1 <- all %>%
 
 deu1 <- lm((after - before) ~ treat + num_inc + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_deu1)
-summary(deu1)
+#summary(deu1)
 ```
 
 
@@ -614,8 +687,9 @@ inc_aus <- all %>%
 
 aus <- lm((after - before) ~ treat + num_inc + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_aus)
-summary(aus)
+#summary(aus)
 ```
+
 
 ```{r}
 inc_fra2 <- all %>%
@@ -626,10 +700,12 @@ inc_fra2 <- all %>%
 
 fra2 <- lm((after - before) ~ treat + num_inc + population_density + foreigners.density + protection_seeking + 
           racism_level_perc + hh_income_net + digital_infrastructure_16_perc, data = inc_fra2)
-summary(fra2)
+#summary(fra2)
 ```
 
+
 ```{r}
+# create Latex code from the regression outputs, all treatments in France
 stargazer(fra, fra1, fra2, title = "Regression Results France",
           dep.var.labels = c("Tweets"),
           covariate.labels = c("Treatment", "Number of Incidents", "Population Density", "Foreigner Density", "People who are seeking for protection",
@@ -639,7 +715,8 @@ stargazer(fra, fra1, fra2, title = "Regression Results France",
 
 
 ```{r}
-stargazer(dnk, deu, deu1, title = "Regression Results Europe #2",
+# create Latex code from the regression outputs, treatments in Denmark and Germany
+stargazer(dnk, deu, deu1, title = "Regression Results Europe (Denmark and Germany)",
           dep.var.labels = c("Tweets"),
           covariate.labels = c("Treatment", "Number of Incidents", "Population Density", "Foreigner Density", "People who are seeking for protection",
                                "Racism Level in Percentage", "Houshold Income (Net)", "Digital Infrastructure"),
@@ -649,6 +726,7 @@ stargazer(dnk, deu, deu1, title = "Regression Results Europe #2",
 
 
 ```{r}
+# create Latex code from regression outputs, transoceanic treatments USA and Australia
 stargazer(usa1, usa2, aus, title = "Regression Results USA and Australia",
           dep.var.labels = c("Tweets"),
           covariate.labels = c("Treatment", "Number of Incidents", "Population Density", "Foreigner Density", "People who are seeking for protection",
